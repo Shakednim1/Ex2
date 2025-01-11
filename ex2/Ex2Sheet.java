@@ -1,114 +1,194 @@
 package assignments.ex2;
-import java.io.IOException;
-// Add your documentation below:
+
+import java.io.*;
 
 public class Ex2Sheet implements Sheet {
     private Cell[][] table;
-    // Add your code here
 
-    // ///////////////////
     public Ex2Sheet(int x, int y) {
-        table = new SCell[x][y];
-        for(int i=0;i<x;i=i+1) {
-            for(int j=0;j<y;j=j+1) {
+        table = new SCell[x][y];     // Create a 2D table with dimensions x by y
+        for (int i = 0; i < x; i++)
+            for (int j = 0; j < y; j++)
                 table[i][j] = new SCell(Ex2Utils.EMPTY_CELL);
-            }
-        }
         eval();
     }
+
     public Ex2Sheet() {
         this(Ex2Utils.WIDTH, Ex2Utils.HEIGHT);
     }
 
     @Override
     public String value(int x, int y) {
-        String ans = Ex2Utils.EMPTY_CELL;
-        // Add your code here
+        // Return empty cell if coordinates are out of bounds
+        if (!isIn(x, y)) {
+            return Ex2Utils.EMPTY_CELL;
+        }
 
-        Cell c = get(x,y);
-        if(c!=null) {ans = c.toString();}
+        // Retrieve the cell at the given coordinates
+        Cell cell = get(x, y);
+        if (cell == null) {
+            return Ex2Utils.EMPTY_CELL;
+        }
 
-        /////////////////////
-        return ans;
+        // Handle cell based on its type
+        switch (cell.getType()) {
+            case Ex2Utils.TEXT:
+                return ((SCell) cell).getShownValue(); // Return raw data for TEXT type
+
+            case Ex2Utils.NUMBER:
+                return String.valueOf(Double.parseDouble(cell.getData())); // Convert NUMBER to string
+
+            case Ex2Utils.FORM:
+                try {
+                    return ((SCell) cell).evalForm(this); // Evaluate the formula
+                } catch (StackOverflowError e) {
+                    cell.setType(Ex2Utils.ERR_CYCLE_FORM); // Set cycle error type
+                    return Ex2Utils.ERR_CYCLE;
+                } catch (IllegalArgumentException e) {
+                    cell.setType(Ex2Utils.ERR_FORM_FORMAT); // Set formula error type
+                    return Ex2Utils.ERR_FORM;
+                }
+
+            case Ex2Utils.ERR_CYCLE_FORM:
+                return Ex2Utils.ERR_CYCLE; // Return cycle error message
+
+            case Ex2Utils.ERR_FORM_FORMAT:
+                return Ex2Utils.ERR_FORM; // Return formula error message
+
+            default:
+                return Ex2Utils.EMPTY_CELL; // Return empty for unexpected types
+        }
     }
 
     @Override
     public Cell get(int x, int y) {
-        return table[x][y];
+        return isIn(x, y) ? table[x][y] : null;
     }
 
     @Override
     public Cell get(String cords) {
-        Cell ans = null;
-        // Add your code here
-
-        /////////////////////
-        return ans;
+        CellEntry entry = CellEntry.fromString(cords);  // Parse the coordinates string into a CellEntry object
+        if (entry == null || !entry.isValid()) {
+            return null;
+        }
+        return get(entry.getX(), entry.getY());
     }
+
+    public String locateCell(Cell target) {
+            for (int rowIndex = 0; rowIndex < width(); rowIndex++) {
+                for (int colIndex = 0; colIndex < height(); colIndex++) {
+                    Cell current = get(rowIndex, colIndex);
+                    if (current != null && current.equals(target)) {
+                        return new CellEntry(rowIndex, colIndex).toString();
+                    }
+                }
+            }
+            return null;
+        }
 
     @Override
     public int width() {
         return table.length;
     }
+
     @Override
     public int height() {
         return table[0].length;
     }
-    @Override
-    public void set(int x, int y, String s) {
-        Cell c = new SCell(s);
-        table[x][y] = c;
-        // Add your code here
 
-        /////////////////////
+    @Override
+    public void set(int row, int column, String value) {
+        if (!isIn(row, column)) {
+            return;
+        }
+        table[row][column] = new SCell(value);
+        eval();
     }
+
     @Override
     public void eval() {
-        int[][] dd = depth();
-        // Add your code here
-
-        // ///////////////////
+        // Iterate through all cells to resolve formulas, update orders, and detect errors
+        for (int x = 0; x < width(); x++) {
+            for (int y = 0; y < height(); y++) {
+                Cell current = get(x, y);
+                if (current != null && current.getType() == Ex2Utils.FORM) {
+                    try {
+                        current.setData(value(x, y));
+                    } catch (StackOverflowError e) {
+                        current.setType(Ex2Utils.ERR_CYCLE_FORM);
+                    } catch (Exception e) {
+                        current.setType(Ex2Utils.ERR_FORM_FORMAT);
+                    }
+                }
+            }
+        }
     }
 
     @Override
     public boolean isIn(int xx, int yy) {
-        boolean ans = xx>=0 && yy>=0;
-        // Add your code here
-
-        /////////////////////
-        return ans;
+        return xx >= 0 && yy >= 0 && xx < width() && yy < height();
     }
 
     @Override
     public int[][] depth() {
-        int[][] ans = new int[width()][height()];
-        // Add your code here
+        int rows = width();
+        int cols = height();
+        int[][] ordersMatrix = new int[rows][cols];
 
-        // ///////////////////
-        return ans;
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                Cell currentCell = get(row, col);
+                if (currentCell != null) {
+                    ordersMatrix[row][col] = currentCell.getOrder();
+                }
+            }
+        }
+        return ordersMatrix;
+
     }
 
     @Override
-    public void load(String fileName) throws IOException {
-        // Add your code here
-
-        /////////////////////
+    public void load(String filePath) throws IOException {
+        // Use a BufferedReader to read the file line by line
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String currentLine;
+            int currentRow = 0;
+            while ((currentLine = reader.readLine()) != null && currentRow < height()) {
+                String[] cellValues = currentLine.split(",");
+                for (int currentCol = 0; currentCol < cellValues.length && currentCol < width(); currentCol++) {
+                    set(currentRow, currentCol, cellValues[currentCol]);
+                }
+                currentRow++;
+            }
+        }
     }
 
     @Override
-    public void save(String fileName) throws IOException {
-        // Add your code here
+    public void save(String filePath) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+            int totalRows = width();
+            int totalColumns = height();
 
-        /////////////////////
+            for (int currentRow = 0; currentRow < totalRows; currentRow++) {
+                StringBuilder rowContent = new StringBuilder();
+
+                for (int currentColumn = 0; currentColumn < totalColumns; currentColumn++) {
+                    Cell cell = get(currentRow, currentColumn);
+                    rowContent.append(cell != null ? cell.getData() : "");
+
+                    if (currentColumn < totalColumns - 1) {
+                        rowContent.append(",");
+                    }
+                }
+                writer.write(rowContent.toString());
+                writer.newLine();
+            }
+        }
     }
 
     @Override
     public String eval(int x, int y) {
-        String ans = null;
-        if(get(x,y)!=null) {ans = get(x,y).toString();}
-        // Add your code here
+        return value(x, y);
+    }
 
-        /////////////////////
-        return ans;
-        }
 }
