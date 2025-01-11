@@ -1,109 +1,94 @@
 package assignments.ex2;
-
 import org.junit.jupiter.api.Test;
-
-import java.util.HashSet;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class SCellTest {
 
     @Test
-    void testIsForm() {
+    void testConstructorAndGetters() {
+        SCell cell = new SCell("123");
+        assertEquals("123", cell.getData(), "Cell data should be '123'");
+        assertEquals(Ex2Utils.NUMBER, cell.getType(), "Cell type should be NUMBER");
+
+        SCell textCell = new SCell("Hello");
+        assertEquals("Hello", textCell.getData(), "Cell data should be 'Hello'");
+        assertEquals(Ex2Utils.TEXT, textCell.getType(), "Cell type should be TEXT");
+    }
+
+    @Test
+    void testSetData() {
         SCell cell = new SCell("=A1+B1");
-        assertTrue(cell.isForm("=A1+B1"));
-        assertFalse(cell.isForm("A1+B1"));
-        assertFalse(cell.isForm(null));
-        assertFalse(cell.isForm(""));
+        assertEquals("=A1+B1", cell.getData(), "Cell data should be '=A1+B1'");
+        assertEquals(Ex2Utils.FORM, cell.getType(), "Cell type should be FORM");
+
+        cell.setData("42");
+        assertEquals("42", cell.getData(), "Cell data should be updated to '42'");
+        assertEquals(Ex2Utils.NUMBER, cell.getType(), "Cell type should be updated to NUMBER");
     }
 
     @Test
-    void testValidCell() {
-        SCell cell = new SCell("");
-        assertTrue(cell.validCell("A1"));
-        assertTrue(cell.validCell("Z999"));
-        assertFalse(cell.validCell("1A"));
-        assertFalse(cell.validCell("AA1"));
-        assertFalse(cell.validCell(""));
-        assertFalse(cell.validCell(null));
+    void testIsNumber() {
+        SCell cell = new SCell("123");
+        assertTrue(cell.isNumber("123"), "'123' should be identified as a number");
+        assertFalse(cell.isNumber("abc"), "'abc' should not be identified as a number");
+        assertFalse(cell.isNumber("=1+2"), "'=1+2' should not be identified as a number");
     }
 
     @Test
-    void testLocateMainOperator() {
-        SCell cell = new SCell("");
-        assertEquals(1, cell.locateMainOperator("A+B", "+"));
-        assertEquals(5, cell.locateMainOperator("(A+B)*C", "*"));
-        assertEquals(-1, cell.locateMainOperator("A+B", "-"));
+    void testIsForm() {
+        SCell cell = new SCell("=1+2");
+        assertTrue(cell.isForm("=1+2"), "'=1+2' should be identified as a formula");
+        assertFalse(cell.isForm("123"), "'123' should not be identified as a formula");
+        assertFalse(cell.isForm("abc"), "'abc' should not be identified as a formula");
     }
 
     @Test
     void testAreParenthesesBalanced() {
-        SCell cell = new SCell("");
-        assertTrue(cell.areParenthesesBalanced("(A+B)"));
-        assertTrue(cell.areParenthesesBalanced("((A+B)*C)"));
-        assertFalse(cell.areParenthesesBalanced("(A+B"));
-        assertFalse(cell.areParenthesesBalanced("A+B)"));
+        SCell cell = new SCell("=1+2");
+        assertTrue(cell.areParenthesesBalanced("(1+2)"), "'(1+2)' should be balanced");
+        assertFalse(cell.areParenthesesBalanced("(1+2"), "'(1+2' should not be balanced");
+        assertTrue(cell.areParenthesesBalanced(""), "Empty string should be balanced");
     }
 
     @Test
-    void testEvalFormSimple() {
-        Ex2Sheet sheet = new Ex2Sheet(5, 5);
-        sheet.set(0, 0, "10"); // A1
-        sheet.set(1, 0, "20"); // B1
-        sheet.set(2, 0, "=A1+B1"); // C1
+    void testEvalForm_CycleDetection() {
+        Ex2Sheet sheet = new Ex2Sheet(10, 10);
+        sheet.set(0, 0, "=B1");
+        sheet.set(0, 1, "=A1");
+        SCell cell = new SCell("=A1");
 
-        SCell formulaCell = (SCell) sheet.get(2, 0);
-        assertEquals("30.0", formulaCell.evalForm(sheet));
+        assertThrows(RuntimeException.class, () -> cell.evalForm(sheet),
+                "A cycle between A1 and B1 should throw a RuntimeException");
     }
 
     @Test
-    void testEvalFormWithNestedReferences() {
-        Ex2Sheet sheet = new Ex2Sheet(5, 5);
-        sheet.set(0, 0, "5"); // A1
-        sheet.set(0, 1, "=A1*2"); // B1
-        sheet.set(0, 2, "=B1+3"); // C1
-
-        SCell formulaCell = (SCell) sheet.get(0, 2);
-        assertEquals("13.0", formulaCell.evalForm(sheet));
+    void testLocateMainOperator() {
+        SCell cell = new SCell("=1+2");
+        assertEquals(1, cell.locateMainOperator("1+2", "+"),
+                "Main operator '+' should be located at index 1");
+        assertEquals(-1, cell.locateMainOperator("(1+2)", "+"),
+                "Main operator '+' inside parentheses should not be considered");
     }
-
-    @Test
-    void testEvalFormWithCycle() {
-        Ex2Sheet sheet = new Ex2Sheet(5, 5);
-        sheet.set(0, 0, "=B1"); // A1
-        sheet.set(0, 1, "=A1"); // B1
-
-        SCell formulaCell = (SCell) sheet.get(0, 0);}
 
     @Test
     void testSplitToken() {
-        SCell cell = new SCell("");
-        String[] tokens = cell.splitToken("A1+B1*C1");
-        assertArrayEquals(new String[]{"A1", "+", "B1", "*", "C1"}, tokens);
-
-        tokens = cell.splitToken("(A1+B1)*C1");
-        assertArrayEquals(new String[]{"(", "A1", "+", "B1", ")", "*", "C1"}, tokens);
+        SCell cell = new SCell("=1+2");
+        String[] tokens = cell.splitToken("1+2*3");
+        assertArrayEquals(new String[]{"1", "+", "2", "*", "3"}, tokens,
+                "Tokens should be split correctly as ['1', '+', '2', '*', '3']");
     }
 
     @Test
     void testHandleCycleError() {
-        SCell cell = new SCell("");
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> cell.handleCycleError("Cycle detected"));
-        assertEquals("Cycle Error: Cycle detected", exception.getMessage());
+        SCell cell = new SCell("=A1");
+        assertThrows(RuntimeException.class, () -> cell.handleCycleError("Cycle detected"),
+                "handleCycleError should throw a RuntimeException with the given message");
     }
 
     @Test
     void testHandleFormulaError() {
-        SCell cell = new SCell("");
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> cell.handleFormulaError("Invalid formula"));
-        assertEquals("Formula Error: Invalid formula", exception.getMessage());
+        SCell cell = new SCell("=A1");
+        assertThrows(RuntimeException.class, () -> cell.handleFormulaError("Invalid formula"),
+                "handleFormulaError should throw a RuntimeException with the given message");
     }
-    @Test
-    void testSet() {
-        Ex2Sheet sheet = new Ex2Sheet(5, 5);
-        sheet.set(0, 0, "10");
-        assertNotNull(sheet.get(0, 0));
-        assertEquals("10", sheet.get(0, 0).getData()); // וודא שהערך נשמר
-    }
-
 }

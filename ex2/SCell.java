@@ -2,10 +2,10 @@ package assignments.ex2;
 import java.util.*;
 
 public class SCell implements Cell {
-    private String line; // Holds the raw data
-    private int type; // The type of the cell
-    private int order; // evaluation order
-    private String setString; //  string representation of the cell's data
+    private String line;        // Holds the raw data
+    private int type;           // The type of the cell
+    private int order;          // evaluation order
+    private String setString;   //  string representation of the cell's data
 
     public SCell(String s) {
         setString = s;
@@ -29,11 +29,11 @@ public class SCell implements Cell {
 
     @Override
     public void setData(String s) {
+        setString = s;
         line = isNumber(s) ? String.valueOf(Double.parseDouble(s)) : s;
-        if (type != Ex2Utils.FORM) {
             setType(detType(s));
         }
-    }
+
 
     @Override
     public String getData() {
@@ -235,7 +235,6 @@ public class SCell implements Cell {
             if (cellReference == null || !sheet.isIn(cellReference.getX(), cellReference.getY())) {
                 handleFormulaError("Invalid cell reference: " + trimmedFormula);
             }
-
             Cell referencedCell = sheet.get(cellReference.getX(), cellReference.getY());
             if (referencedCell.getType() == Ex2Utils.NUMBER) {
                 return Double.parseDouble(referencedCell.getData()); // Return the cell's value as a number
@@ -281,6 +280,4 @@ public class SCell implements Cell {
 
         throw new IllegalArgumentException("Invalid form syntax: " + trimmedFormula); // Handle invalid formula syntax
     }
-
-
 }

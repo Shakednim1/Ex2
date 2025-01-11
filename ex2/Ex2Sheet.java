@@ -57,6 +57,7 @@ public class Ex2Sheet implements Sheet {
         return null;
     }
 
+
     @Override
     public String value(int x, int y) {
         if (!isIn(x, y)) {
@@ -93,6 +94,9 @@ public class Ex2Sheet implements Sheet {
                 return Ex2Utils.EMPTY_CELL; // Return empty for unexpected types
         }
     }
+
+
+
 
     @Override
     public boolean isIn(int xx, int yy) {
@@ -179,5 +183,4 @@ public class Ex2Sheet implements Sheet {
     public String eval(int x, int y) {
         return value(x, y);
     }
-
 }

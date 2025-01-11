@@ -41,16 +41,11 @@ public class CellEntry implements Index2D {
         return this.toString().equals(other.toString());
     }
 
-    private static boolean isValid(int x, int y) {
-        return x >= 0 && y >= 0 && y < 26 && x < 100; // Valid range: X in [0-99], Y in [0-25] (A-Z)
-    }
-
     public static CellEntry parseCellIndex(String cellIndex) {
         if (cellIndex == null || cellIndex.length() < 2) {
             return null;
         }
-
-        char columnLetter = cellIndex.charAt(0); // Extract the column letter (e.g., 'A', 'B', etc.)
+        char columnLetter = cellIndex.charAt(0);
         int rowIndex;
         try {
             rowIndex = Integer.parseInt(cellIndex.substring(1));
@@ -64,5 +59,8 @@ public class CellEntry implements Index2D {
         }
 
         return new CellEntry(columnIndex, rowIndex);
+    }
+    private static boolean isValid(int x, int y) {
+        return x >= 0 && y >= 0 && y < 26 && x < 100; // Valid range: X in [0-99], Y in [0-25] (A-Z)
     }
 }
