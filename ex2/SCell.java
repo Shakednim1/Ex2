@@ -133,7 +133,7 @@ public class SCell implements Cell {
         String[] components = splitToken(expression);
         for (String component : components) {
             if (validCell(component)) {
-                CellEntry cellReference = CellEntry.fromString(component);
+                CellEntry cellReference = CellEntry.parseCellIndex(component);
                 if (sheet.isIn(cellReference.getX(), cellReference.getY())) {
                     Cell referencedCell = sheet.get(cellReference.getX(), cellReference.getY());
                     highestOrder = Math.max(highestOrder, referencedCell.getOrder()); // Update highest order
@@ -200,7 +200,7 @@ public class SCell implements Cell {
 
         Set<String> currentVisited = visited == null ? new HashSet<>() : visited; // Initialize visited set
 
-        CellEntry currentCell = CellEntry.fromString(sheet.locateCell(this)); // Locate the current cell
+        CellEntry currentCell = CellEntry.parseCellIndex(sheet.locateCell(this)); // Locate the current cell
         if (currentCell != null) {
             if (currentVisited.contains(currentCell.toString())) {
                 type = Ex2Utils.ERR_CYCLE_FORM; // Mark as a cycle error if already visited
@@ -231,7 +231,7 @@ public class SCell implements Cell {
 
         // Check if the formula is a valid cell reference
         if (validCell(trimmedFormula)) {
-            CellEntry cellReference = CellEntry.fromString(trimmedFormula);
+            CellEntry cellReference = CellEntry.parseCellIndex(trimmedFormula);
             if (cellReference == null || !sheet.isIn(cellReference.getX(), cellReference.getY())) {
                 handleFormulaError("Invalid cell reference: " + trimmedFormula);
             }

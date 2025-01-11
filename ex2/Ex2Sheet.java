@@ -19,7 +19,7 @@ public class Ex2Sheet implements Sheet {
 
     @Override
     public Cell get(String cords) {
-        CellEntry entry = CellEntry.fromString(cords);  // Parse the coordinates string into a CellEntry object
+        CellEntry entry = CellEntry.parseCellIndex(cords);  // Parse the coordinates string into a CellEntry object
         if (entry == null || !entry.isValid()) {
             return null;
         }
