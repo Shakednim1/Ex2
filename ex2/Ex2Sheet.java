@@ -1,5 +1,4 @@
 package assignments.ex2;
-
 import java.io.*;
 
 public class Ex2Sheet implements Sheet {
@@ -11,53 +10,6 @@ public class Ex2Sheet implements Sheet {
             for (int j = 0; j < y; j++)
                 table[i][j] = new SCell(Ex2Utils.EMPTY_CELL);
         eval();
-    }
-
-    public Ex2Sheet() {
-        this(Ex2Utils.WIDTH, Ex2Utils.HEIGHT);
-    }
-
-    @Override
-    public String value(int x, int y) {
-        // Return empty cell if coordinates are out of bounds
-        if (!isIn(x, y)) {
-            return Ex2Utils.EMPTY_CELL;
-        }
-
-        // Retrieve the cell at the given coordinates
-        Cell cell = get(x, y);
-        if (cell == null) {
-            return Ex2Utils.EMPTY_CELL;
-        }
-
-        // Handle cell based on its type
-        switch (cell.getType()) {
-            case Ex2Utils.TEXT:
-                return ((SCell) cell).getShownValue(); // Return raw data for TEXT type
-
-            case Ex2Utils.NUMBER:
-                return String.valueOf(Double.parseDouble(cell.getData())); // Convert NUMBER to string
-
-            case Ex2Utils.FORM:
-                try {
-                    return ((SCell) cell).evalForm(this); // Evaluate the formula
-                } catch (StackOverflowError e) {
-                    cell.setType(Ex2Utils.ERR_CYCLE_FORM); // Set cycle error type
-                    return Ex2Utils.ERR_CYCLE;
-                } catch (IllegalArgumentException e) {
-                    cell.setType(Ex2Utils.ERR_FORM_FORMAT); // Set formula error type
-                    return Ex2Utils.ERR_FORM;
-                }
-
-            case Ex2Utils.ERR_CYCLE_FORM:
-                return Ex2Utils.ERR_CYCLE; // Return cycle error message
-
-            case Ex2Utils.ERR_FORM_FORMAT:
-                return Ex2Utils.ERR_FORM; // Return formula error message
-
-            default:
-                return Ex2Utils.EMPTY_CELL; // Return empty for unexpected types
-        }
     }
 
     @Override
@@ -73,18 +25,6 @@ public class Ex2Sheet implements Sheet {
         }
         return get(entry.getX(), entry.getY());
     }
-
-    public String locateCell(Cell target) {
-            for (int rowIndex = 0; rowIndex < width(); rowIndex++) {
-                for (int colIndex = 0; colIndex < height(); colIndex++) {
-                    Cell current = get(rowIndex, colIndex);
-                    if (current != null && current.equals(target)) {
-                        return new CellEntry(rowIndex, colIndex).toString();
-                    }
-                }
-            }
-            return null;
-        }
 
     @Override
     public int width() {
@@ -105,22 +45,52 @@ public class Ex2Sheet implements Sheet {
         eval();
     }
 
-    @Override
-    public void eval() {
-        // Iterate through all cells to resolve formulas, update orders, and detect errors
-        for (int x = 0; x < width(); x++) {
-            for (int y = 0; y < height(); y++) {
-                Cell current = get(x, y);
-                if (current != null && current.getType() == Ex2Utils.FORM) {
-                    try {
-                        current.setData(value(x, y));
-                    } catch (StackOverflowError e) {
-                        current.setType(Ex2Utils.ERR_CYCLE_FORM);
-                    } catch (Exception e) {
-                        current.setType(Ex2Utils.ERR_FORM_FORMAT);
-                    }
+    public String locateCell(Cell target) {
+        for (int rowIndex = 0; rowIndex < width(); rowIndex++) {
+            for (int colIndex = 0; colIndex < height(); colIndex++) {
+                Cell current = get(rowIndex, colIndex);
+                if (current != null && current.equals(target)) {
+                    return new CellEntry(rowIndex, colIndex).toString();
                 }
             }
+        }
+        return null;
+    }
+
+    @Override
+    public String value(int x, int y) {
+        if (!isIn(x, y)) {
+            return Ex2Utils.EMPTY_CELL;
+        }
+        Cell cell = get(x, y);
+        if (cell == null) {
+            return Ex2Utils.EMPTY_CELL;
+        }
+        switch (cell.getType()) {
+            case Ex2Utils.TEXT:
+                return ((SCell) cell).getShownValue(); // Return raw data for TEXT type
+
+            case Ex2Utils.NUMBER:
+                return String.valueOf(Double.parseDouble(cell.getData())); // Convert NUMBER to string
+
+            case Ex2Utils.FORM:
+                try {
+                    return ((SCell) cell).evalForm(this); // Evaluate the formula
+                } catch (StackOverflowError e) {
+                    cell.setType(Ex2Utils.ERR_CYCLE_FORM); // Set cycle error type
+                    return Ex2Utils.ERR_CYCLE;
+                } catch (IllegalArgumentException e) {
+                    cell.setType(Ex2Utils.ERR_FORM_FORMAT); // Set formula error type
+                    return Ex2Utils.ERR_FORM;
+                }
+            case Ex2Utils.ERR_CYCLE_FORM:
+                return Ex2Utils.ERR_CYCLE; // Return cycle error message
+
+            case Ex2Utils.ERR_FORM_FORMAT:
+                return Ex2Utils.ERR_FORM; // Return formula error message
+
+            default:
+                return Ex2Utils.EMPTY_CELL; // Return empty for unexpected types
         }
     }
 
@@ -146,6 +116,25 @@ public class Ex2Sheet implements Sheet {
         return ordersMatrix;
 
     }
+    @Override
+    public void eval() {
+        // Iterate through all cells to resolve formulas, update orders, and detect errors
+        for (int x = 0; x < width(); x++) {
+            for (int y = 0; y < height(); y++) {
+                Cell current = get(x, y);
+                if (current != null && current.getType() == Ex2Utils.FORM) {
+                    try {
+                        current.setData(value(x, y));
+                    } catch (StackOverflowError e) {
+                        current.setType(Ex2Utils.ERR_CYCLE_FORM);
+                    } catch (Exception e) {
+                        current.setType(Ex2Utils.ERR_FORM_FORMAT);
+                    }
+                }
+            }
+        }
+    }
+
 
     @Override
     public void load(String filePath) throws IOException {
